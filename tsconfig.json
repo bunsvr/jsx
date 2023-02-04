@@ -8,13 +8,11 @@
         "jsx": "react-jsx",
         "lib": [
             "DOM",
-            "DOM.Iterable",
-            "WebWorker",
-            "WebWorker.ImportScripts",
-            "Webworker.Iterable"
+            "DOM.Iterable"
         ],
         "emitDeclarationOnly": true,
         "declaration": true,
+        "allowUmdGlobalAccess": true,
         "outDir": "types",
         "typeRoots": [".", "node_modules"],
     },

@@ -1,1 +1,4 @@
-declare const params: RegExpExecArray;
+/**
+ * Parsed parameter
+ */
+declare const params: Record<string, string>;

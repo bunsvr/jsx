@@ -5,4 +5,5 @@ function App() {
     return <p>Hello world</p>;
 }
 
-render(<App />, document.getElementById("root"));
+// Render in body because why not :)
+render(<App />, document.body);
