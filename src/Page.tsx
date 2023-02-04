@@ -19,7 +19,7 @@ import { Template } from "./types";
 const rm = promisify(fs.rm);
 const mkdir = promisify(fs.mkdir);
 
-async function build(files: string[], outdir: string, dev: boolean) {
+async function build(files: string[], outdir: string, dev: boolean, other: esbuild.BuildOptions) {
     return esbuild.build({
         bundle: true,
         minify: true,
@@ -30,45 +30,49 @@ async function build(files: string[], outdir: string, dev: boolean) {
         entryPoints: files,
         legalComments: "none",
         outdir,
+        ...other
     });
 }
 
 export class PageRouter<T = any> {
-    private src: string;
-    private out: string;
-    private dev: boolean;
-    private root: string;
+    readonly src: string;
+    readonly out: string;
+    readonly dev: boolean;
+    readonly root: string;
 
     private entries: string[]
 
     private readonly app: App<T>;
+    readonly router: Router<T>;
+    readonly template: Template;
 
     /**
      * Create a page with a template 
-     * @param template The template function to apply. Defaults to the one in template.tsx 
      */
-    constructor(
-        public readonly template: Template = defaultTemplate,
-        public readonly router: Router<T> = new Router()
-    ) {
+    constructor(private readonly build: esbuild.BuildOptions = {}) {
         this.root = Path.resolve();
         this.src = "src";
         this.out = "out";
         this.dev = Bun.env.NODE_ENV !== "production";
 
+        this.template = defaultTemplate;
+
         this.entries = [];
 
         this.app = new App();
+        this.router = new Router<T>();
     }
 
-    set(field: "src" | "out" | "root", value: string): PageRouter<T>;
-    set(field: "dev", value: boolean): PageRouter<T>;
+    set(field: "src" | "out" | "root", value: string): this;
+    set(field: "dev", value: boolean): this;
+    set(field: "router", value: Router<T>): this;
+    set(field: "template", value: Template): this;
     /**
      * Set private fields 
      * @param field 
      * @param value 
      */
-    set(field: string, value: string | boolean) {
+    set(field: string, value: any) {
         this[field] = value;
 
         return this;
@@ -82,7 +86,7 @@ export class PageRouter<T = any> {
     static(path: string, source: string) {
         const Element = this.template.use;
         const str = ReactDOM.renderToString(
-            <Element script={"/" + source.split(".")[0] + ".js"} />
+            <Element name={"/" + source.split(".")[0]} />
         );
 
         this.router.static(path, () => new Response(str, {
@@ -107,7 +111,7 @@ export class PageRouter<T = any> {
                 ReactDOM.renderToString(
                     <Element 
                         params={req.params}
-                        script={"/" + source.split(".")[0] + ".js"}
+                        name={"/" + source.split(".")[0]}
                     />
                 ), { headers: { "content-type": "text/html" } }
             )
@@ -134,7 +138,7 @@ export class PageRouter<T = any> {
 
         this.app.development = this.dev;
 
-        return build(this.entries, outDir, this.dev);
+        return build(this.entries, outDir, this.dev, this.build);
     }
 
     /**

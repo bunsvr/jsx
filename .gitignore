@@ -8,4 +8,4 @@ tests
 # Build
 index.js
 types
-assets/docs
+assets/examples/out

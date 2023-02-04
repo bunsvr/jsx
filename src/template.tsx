@@ -1,9 +1,12 @@
 export default {
     rootID: "root",
-    use({script, params}) {
+    use({name, params}) {
         const parsed = JSON.stringify(params);
 
         return <html lang="en">
+            <head>
+                <link rel="stylesheet" href={name + ".css"} />
+            </head>
             <body>
                 <div id="root"></div>
                 <script 
@@ -12,7 +15,7 @@ export default {
                     dangerouslySetInnerHTML={{
                         __html: `const params = ${parsed}`
                     }}></script>
-                <script defer src={script}></script>
+                <script defer src={name + ".js"}></script>
             </body>
         </html>
     } 
