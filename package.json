@@ -1,6 +1,6 @@
 {
   "name": "@stricjs/jsx",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "repository": {
     "url": "https://github.com/bunsvr/jsx"
   },
@@ -25,13 +25,9 @@
     "build": "tsc && esbuild src/index.ts --bundle --format=esm --platform=node --minify --jsx=automatic --external:bun --external:esbuild --outfile=index.js"
   },
   "type": "module",
-  "types": "types/index.d.ts",
+  "types": "index.d.ts",
   "typedoc": {
     "entryPoint": "./src/index.ts",
     "displayName": "@stricjs/jsx"
-  },
-  "exports": {
-    ".": "./index.js",
-    "./global": "./global.d.ts"
   }
 }

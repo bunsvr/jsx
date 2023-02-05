@@ -8,7 +8,6 @@ bun.lockb
 # Development
 src
 assets
-tsconfig.json
 typedoc.json
 .vscode
 
