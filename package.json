@@ -25,7 +25,7 @@
     "build": "tsc && esbuild src/index.ts --bundle --format=esm --platform=node --minify --jsx=automatic --external:bun --external:esbuild --outfile=index.js"
   },
   "type": "module",
-  "types": "index.d.ts",
+  "types": "types/index.d.ts",
   "typedoc": {
     "entryPoint": "./src/index.ts",
     "displayName": "@stricjs/jsx"
