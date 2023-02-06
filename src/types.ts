@@ -3,10 +3,10 @@ export interface Template {
      * Render the template
      * @param props 
      */
-    use(props: {name: string, params?: RegExpExecArray}): JSX.Element;
+    use(props: {name: string, params?: RegExpExecArray, children?: React.ReactNode, Head?: (props: { params: Record<string, string> }) => JSX.Element}): JSX.Element;
 
     /**
-     * Render root. For future SSR support
+     * Render root query selector
      */
     root?: string;
 }

@@ -1,4 +1,4 @@
-import defaultTemplate from "./template";
+import { template as defaultTemplate } from "./template";
 
 import esbuild from "esbuild";
 
@@ -16,23 +16,55 @@ import fs from "fs";
 import { promisify } from "util";
 import { Template } from "./types";
 
+type RouteList = {
+    ssr?: boolean;
+    path: string | RegExp;
+    source: string;
+    type: "static" | "dynamic";
+}[];
+
 const rm = promisify(fs.rm);
 const mkdir = promisify(fs.mkdir);
+const appendFile = promisify(fs.appendFile);
 
-async function build(files: string[], outdir: string, dev: boolean, other: esbuild.BuildOptions) {
-    return esbuild.build({
+async function build(files: RouteList, outdir: string, dev: boolean, root: string, other: esbuild.BuildOptions) {
+    const tmps = files.map(v => Path.join(outdir, Path.basename(v.source)));
+
+    let index = 0;
+    for (const tmp of tmps) {
+        const file = files[index];
+        const isSSR = !!file.ssr;
+        const selector = `document.querySelector(\`${root}\`)`;
+
+        await appendFile(tmp, `
+            import App from "${file.source}";
+            import { ${
+                isSSR ? "hydrateRoot" : "createRoot"
+            } } from "react-dom/client";
+            ${isSSR 
+                ? `hydrateRoot(${selector}, <App />)` 
+                : `createRoot(${selector}).render(<App />)`}
+        `);
+
+        ++index;
+    };
+
+    const buildRes = await esbuild.build({
         bundle: true,
         minify: true,
         platform: "browser",
         jsx: "automatic",
         external: ["esbuild"],
         jsxDev: dev,
-        entryPoints: files,
+        entryPoints: tmps,
         legalComments: "none",
         outdir,
         ...other
     });
-}
+
+    await Promise.all(tmps.map(f => rm(f)));
+    return buildRes;
+};
 
 export class PageRouter<T = any> {
     readonly src: string;
@@ -40,7 +72,7 @@ export class PageRouter<T = any> {
     readonly dev: boolean;
     readonly root: string;
 
-    private entries: string[]
+    private routesData: RouteList;
 
     private readonly app: App<T>;
     readonly router: Router<T>;
@@ -57,7 +89,7 @@ export class PageRouter<T = any> {
 
         this.template = defaultTemplate;
 
-        this.entries = [];
+        this.routesData = [];
 
         this.app = new App();
         this.router = new Router<T>();
@@ -83,17 +115,11 @@ export class PageRouter<T = any> {
      * @param path The pathname 
      * @param source Relative path in src
      */
-    static(path: string, source: string) {
-        const Element = this.template.use;
-        const str = ReactDOM.renderToString(
-            <Element name={"/" + source.split(".")[0]} />
-        );
-
-        this.router.static(path, () => new Response(str, {
-            headers: { "content-type": "text/html" }
-        }));
-
-        this.entries.push(Path.join(this.root, this.src, source));
+    static(path: string, source: string, ssr?: boolean) {
+        this.routesData.push({
+            type: "static",
+            path, source: Path.join(this.root, this.src, source), ssr
+        });
 
         return this;
     }
@@ -103,21 +129,11 @@ export class PageRouter<T = any> {
      * @param path The pathname 
      * @param source Relative path in src
      */
-    dynamic(path: string | RegExp, source: string) {
-        const Element = this.template.use;
-
-        this.router.dynamic(path, req => 
-            new Response(
-                ReactDOM.renderToString(
-                    <Element 
-                        params={req.params}
-                        name={"/" + source.split(".")[0]}
-                    />
-                ), { headers: { "content-type": "text/html" } }
-            )
-        );
-
-        this.entries.push(Path.join(this.root, this.src, source));
+    dynamic(path: string | RegExp, source: string, ssr?: boolean) {
+        this.routesData.push({
+            type: "dynamic",
+            path, source: Path.join(this.root, this.src, source), ssr
+        });
 
         return this;
     }
@@ -126,6 +142,44 @@ export class PageRouter<T = any> {
      * Build all files in src and add all routes to app
      */
     async load() {
+        // Setup router
+        for (const route of this.routesData) {
+            // For SSR support
+            const Element = this.template.use;
+            const mod = await import(route.source) as {
+                default: () => React.ReactElement,
+                Head: () => React.ReactElement,
+            };
+            const args = {
+                name: route.source.split(".")[0].replace(Path.join(this.root, this.src), ""),
+                Head: mod.Head
+            }
+
+            // Check for every type of route
+            if (route.type === "static") {
+                const str = ReactDOM.renderToString(
+                    <Element {...args}>
+                        {route.ssr && <mod.default />}
+                    </Element>
+                );
+    
+                this.router.static(route.path as string, () => new Response(str, {
+                    headers: { "content-type": "text/html" }
+                }));
+            } else 
+                this.router.dynamic(route.path, req =>
+                    new Response(
+                        ReactDOM.renderToString(
+                            <Element
+                                params={req.params}
+                                {...args}
+                            >{route.ssr && <mod.default />}</Element>
+                        ), { headers: { "content-type": "text/html" } }
+                    )
+                );
+        }
+
+        // Setup app
         const outDir = Path.join(this.root, this.out);
 
         if (fs.existsSync(outDir))
@@ -138,7 +192,11 @@ export class PageRouter<T = any> {
 
         this.app.development = this.dev;
 
-        return build(this.entries, outDir, this.dev, this.build);
+        // Build
+        return build(
+            this.routesData, outDir, this.dev,
+            this.template.root || "body", this.build
+        );
     }
 
     /**

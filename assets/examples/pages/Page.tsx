@@ -1,9 +1,9 @@
-import { render } from "react-dom";
 import "../styles/index.css";
 
-function App() {
+export default function App() {
     return <p>You are on page: {params.page}</p>;
 }
 
-// Render in body because why not :)
-render(<App />, document.body);
+export function Head(props: { params: Record<string, string> }) {
+    return <title>{props.params.page}</title>;
+}

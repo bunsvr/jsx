@@ -1,17 +1,27 @@
-export default {
-    use({name, params}) {
+import { Template } from "./types";
+
+export function minifiedLoadScript(paramsString: string) {
+    return (paramsString ? `window.params=${paramsString};` : "") 
+        + `window.addEventListener("load",()=>{for(let e of document.getElementsByClassName("__styles"))e.media="all"})`;
+}
+
+export const template: Template = {
+    root: "body",
+    use({ name, params, children, Head }) {
         // RegExpExecArray is an array with properties, which is why this will not work when parse the whole array in
         const parsed = params ? JSON.stringify(params?.groups) : "";
+        const styles = name + ".css";
 
         return <html lang="en">
             <head>
-                <link rel="stylesheet" href={name + ".css"} />
-                <script dangerouslySetInnerHTML={{
-                        __html: `const params = ${parsed}`
-                    }}></script>
-                <script defer src={name + ".js"}></script>
+                <link rel="stylesheet" href={styles} media="print" className="__styles" />
+                {Head && <Head params={params?.groups} />}
+                <script async dangerouslySetInnerHTML={{
+                    __html: minifiedLoadScript(parsed)
+                }}></script>
+                <script async defer src={name + ".js"}></script>
             </head>
-            <body></body>
+            <body>{children}</body>
         </html>
-    } 
+    }
 }

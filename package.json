@@ -1,6 +1,6 @@
 {
   "name": "@stricjs/jsx",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0",
   "repository": {
     "url": "https://github.com/bunsvr/jsx"
   },
@@ -20,7 +20,7 @@
   "peerDependencies": {
     "esbuild": "^0.16.10"
   },
-  "description": "Support multi-page client-side rendering with React",
+  "description": "Support multi-page rendering with React",
   "scripts": {
     "build": "tsc && esbuild src/index.ts --bundle --format=esm --platform=node --minify --jsx=automatic --external:bun --external:esbuild --outfile=index.js"
   },
