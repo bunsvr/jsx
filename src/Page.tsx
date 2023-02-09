@@ -15,12 +15,14 @@ import Path from "path/posix";
 import fs from "fs";
 import { promisify } from "util";
 import { Template } from "./types";
+import { randomBytes } from "crypto";
 
 type RouteList = {
     ssr?: boolean;
     path: string | RegExp;
     source: string;
     type: "static" | "dynamic";
+    id: string,
 }[];
 
 const rm = promisify(fs.rm);
@@ -28,7 +30,7 @@ const mkdir = promisify(fs.mkdir);
 const appendFile = promisify(fs.appendFile);
 
 async function build(files: RouteList, outdir: string, dev: boolean, root: string, other: esbuild.BuildOptions) {
-    const tmps = files.map(v => Path.join(outdir, Path.basename(v.source)));
+    const tmps = files.map(v => Path.join(outdir, Path.basename(v.source).split(".")[0] + `.${v.id}.tsx`));
 
     let index = 0;
     for (const tmp of tmps) {
@@ -65,6 +67,8 @@ async function build(files: RouteList, outdir: string, dev: boolean, root: strin
     await Promise.all(tmps.map(f => rm(f)));
     return buildRes;
 };
+
+const bytes = 10;
 
 export class PageRouter<T = any> {
     readonly src: string;
@@ -118,7 +122,8 @@ export class PageRouter<T = any> {
     static(path: string, source: string, ssr?: boolean) {
         this.routesData.push({
             type: "static",
-            path, source: Path.join(this.root, this.src, source), ssr
+            path, source: Path.join(this.root, this.src, source), ssr,
+            id: randomBytes(bytes).toString("hex")
         });
 
         return this;
@@ -132,7 +137,8 @@ export class PageRouter<T = any> {
     dynamic(path: string | RegExp, source: string, ssr?: boolean) {
         this.routesData.push({
             type: "dynamic",
-            path, source: Path.join(this.root, this.src, source), ssr
+            path, source: Path.join(this.root, this.src, source), ssr,
+            id: randomBytes(bytes).toString("hex")
         });
 
         return this;
@@ -141,7 +147,7 @@ export class PageRouter<T = any> {
     /**
      * Build all files in src and add all routes to app
      */
-    async load() {
+    async load(streamOpts?: BlobPropertyBag & ResponseInit) {
         // Setup router
         for (const route of this.routesData) {
             // For SSR support
@@ -151,7 +157,7 @@ export class PageRouter<T = any> {
                 Head: () => React.ReactElement,
             };
             const args = {
-                name: route.source.split(".")[0].replace(Path.join(this.root, this.src), ""),
+                name: route.source.split(".")[0].replace(Path.join(this.root, this.src), "") + `.${route.id}`,
                 Head: mod.Head
             }
 
@@ -187,16 +193,18 @@ export class PageRouter<T = any> {
         await mkdir(outDir);
 
         this.app
-            .use(stream(outDir))
+            .use(stream(outDir, streamOpts))
             .use(this.router.fetch());
 
         this.app.development = this.dev;
 
         // Build
-        return build(
+        await build(
             this.routesData, outDir, this.dev,
             this.template.root || "body", this.build
         );
+
+        return this;
     }
 
     /**
@@ -204,7 +212,6 @@ export class PageRouter<T = any> {
      */
     async serve() {
         await this.load();
-
         return Bun.serve(this.app);
     }
 

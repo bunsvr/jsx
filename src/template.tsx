@@ -15,6 +15,7 @@ export const template: Template = {
         return <html lang="en">
             <head>
                 <link rel="stylesheet" href={styles} media="print" className="__styles" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 {Head && <Head params={params?.groups} />}
                 <script async dangerouslySetInnerHTML={{
                     __html: minifiedLoadScript(parsed)

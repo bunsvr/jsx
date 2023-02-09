@@ -1,6 +1,14 @@
 import { PageRouter } from "../..";
 
-new PageRouter()
+const headers = {
+    "cache-control": "max-age=604800"
+};
+
+const router = await new PageRouter({
+    loader: {
+        ".css": "css"
+    }
+})
     // Set development mode
     .set("dev", false)
     // Set root folder
@@ -11,5 +19,8 @@ new PageRouter()
     .static("/", "App.tsx", true)
     // Serve Page.tsx when request match /:page
     .dynamic("/:page", "Page.tsx")
-    // Build and serve
-    .serve();
+    // Build
+    .load({ headers });
+
+// Serve
+router.serve();
