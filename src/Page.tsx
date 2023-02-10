@@ -12,10 +12,10 @@ import ReactDOM from "react-dom/server";
 
 import Path from "path/posix";
 
-import fs from "fs";
+import fs, { existsSync } from "fs";
 import { promisify } from "util";
 import { Template } from "./types";
-import { randomBytes } from "crypto";
+import { hashContent } from "./hash";
 
 type RouteList = {
     ssr?: boolean;
@@ -51,7 +51,7 @@ async function build(files: RouteList, outdir: string, dev: boolean, root: strin
         ++index;
     };
 
-    const buildRes = await esbuild.build({
+    await esbuild.build({
         bundle: true,
         minify: true,
         platform: "browser",
@@ -65,10 +65,7 @@ async function build(files: RouteList, outdir: string, dev: boolean, root: strin
     });
 
     await Promise.all(tmps.map(f => rm(f)));
-    return buildRes;
 };
-
-const bytes = 10;
 
 export class PageRouter<T = any> {
     readonly src: string;
@@ -120,10 +117,12 @@ export class PageRouter<T = any> {
      * @param source Relative path in src
      */
     static(path: string, source: string, ssr?: boolean) {
+        const filePath = Path.join(this.root, this.src, source);
+
         this.routesData.push({
             type: "static",
-            path, source: Path.join(this.root, this.src, source), ssr,
-            id: randomBytes(bytes).toString("hex")
+            path, source: filePath, ssr,
+            id: hashContent(filePath),
         });
 
         return this;
@@ -135,10 +134,12 @@ export class PageRouter<T = any> {
      * @param source Relative path in src
      */
     dynamic(path: string | RegExp, source: string, ssr?: boolean) {
+        const filePath = Path.join(this.root, this.src, source);
+
         this.routesData.push({
             type: "dynamic",
-            path, source: Path.join(this.root, this.src, source), ssr,
-            id: randomBytes(bytes).toString("hex")
+            path, source: filePath, ssr,
+            id: hashContent(filePath),
         });
 
         return this;
@@ -148,6 +149,17 @@ export class PageRouter<T = any> {
      * Build all files in src and add all routes to app
      */
     async load(streamOpts?: BlobPropertyBag & ResponseInit) {
+        const outDir = Path.join(this.root, this.out);
+        if (fs.existsSync(outDir))
+            await rm(outDir, { recursive: true });
+        await mkdir(outDir);
+
+        // Build
+        await build(
+            this.routesData, outDir, this.dev,
+            this.template.root || "body", this.build
+        );
+
         // Setup router
         for (const route of this.routesData) {
             // For SSR support
@@ -156,9 +168,23 @@ export class PageRouter<T = any> {
                 default: () => React.ReactElement,
                 Head: () => React.ReactElement,
             };
-            const args = {
-                name: route.source.split(".")[0].replace(Path.join(this.root, this.src), "") + `.${route.id}`,
+
+            const withoutExt = route.source.split(".")[0],
+                srcDir = Path.join(this.root, this.src),
+                fileId = `.${route.id}.`,
+                fileName = withoutExt.replace(srcDir, "") + fileId;
+            const args: any = {
+                style: "", 
+                script: fileName + "js",
                 Head: mod.Head
+            }
+
+            // Add style if needed
+            {
+                const cssPath = withoutExt.replace(srcDir, outDir) + fileId + "css";
+
+                if (existsSync(cssPath))
+                    args.style = fileName + "css";
             }
 
             // Check for every type of route
@@ -186,23 +212,11 @@ export class PageRouter<T = any> {
         }
 
         // Setup app
-        const outDir = Path.join(this.root, this.out);
-
-        if (fs.existsSync(outDir))
-            await rm(outDir, { recursive: true });
-        await mkdir(outDir);
-
         this.app
             .use(stream(outDir, streamOpts))
             .use(this.router.fetch());
 
         this.app.development = this.dev;
-
-        // Build
-        await build(
-            this.routesData, outDir, this.dev,
-            this.template.root || "body", this.build
-        );
 
         return this;
     }

@@ -4,11 +4,7 @@ const headers = {
     "cache-control": "max-age=604800"
 };
 
-const router = await new PageRouter({
-    loader: {
-        ".css": "css"
-    }
-})
+const router = await new PageRouter()
     // Set development mode
     .set("dev", false)
     // Set root folder
