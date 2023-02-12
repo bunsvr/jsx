@@ -232,7 +232,7 @@ export class PageRouter<T = any> {
     /**
      * Return the fetch handler
      */
-    fetch() {
+    fetch(): (request: Request<any>, server: Bun.Server) => Promise<Response> {
         return this.app.fetch.bind(this.app);
     }
 }

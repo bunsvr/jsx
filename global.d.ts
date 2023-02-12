@@ -1,8 +1,11 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="esnext" />
+/// <reference types="bun-types" />
 
 /**
  * Parsed parameter
  */
-declare const params: Record<string, string>;
+declare interface Window {
+    readonly params: Record<string, string>;
+}
