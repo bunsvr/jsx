@@ -1,6 +1,6 @@
 {
   "name": "@stricjs/jsx",
-  "version": "1.0.3-alpha",
+  "version": "1.0.3-alpha.3",
   "repository": {
     "url": "https://github.com/bunsvr/jsx"
   },
@@ -29,5 +29,9 @@
   "typedoc": {
     "entryPoint": "./src/index.ts",
     "displayName": "@stricjs/jsx"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./global": "./global.d.ts"
   }
 }

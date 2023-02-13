@@ -1,7 +1,4 @@
-/// <reference lib="dom" />
-/// <reference lib="dom.iterable" />
-/// <reference lib="esnext" />
-/// <reference types="bun-types" />
+/// <reference no-default-lib="true" />
 
 /**
  * Parsed parameter
