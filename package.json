@@ -1,6 +1,6 @@
 {
   "name": "@stricjs/jsx",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "repository": {
     "url": "https://github.com/bunsvr/jsx"
   },
@@ -14,9 +14,9 @@
     "@stricjs/router": "^1.0.7",
     "@types/react-dom": "^18.0.10",
     "react-dom": "^18.2.0",
-    "@stricjs/core": "^1.0.3",
-    "@stricjs/utils": "^1.0.4",
-    "@stricjs/pages": "^1.0.2"
+    "@stricjs/core": "~1.0.3",
+    "@stricjs/utils": "~1.0.4",
+    "@stricjs/pages": "~1.0.2"
   },
   "peerDependencies": {
     "esbuild": ">=^0.16.10",
@@ -29,10 +29,7 @@
   },
   "type": "module",
   "types": "types/index.d.ts",
-  "typedoc": {
-    "entryPoint": "./src/index.ts",
-    "displayName": "@stricjs/jsx"
-  },
+  "keywords": ["bun", "stric"],
   "exports": {
     ".": "./index.js",
     "./global": "./global.d.ts"
