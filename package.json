@@ -1,6 +1,6 @@
 {
   "name": "@stricjs/jsx",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "repository": {
     "url": "https://github.com/bunsvr/jsx"
   },
@@ -16,7 +16,7 @@
     "react-dom": "^18.2.0",
     "@stricjs/core": "^1.0.3",
     "@stricjs/utils": "^1.0.4",
-    "@stricjs/pages": "^1.0.1"
+    "@stricjs/pages": "^1.0.2"
   },
   "peerDependencies": {
     "esbuild": ">=^0.16.10",
